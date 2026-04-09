@@ -1,0 +1,1 @@
+# Core stigman package

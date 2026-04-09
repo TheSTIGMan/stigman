@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stigman"
+version = "0.1.0"
+description = "AI-powered DISA STIG compliance scanner for Ubuntu"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "click",
+    "anthropic",
+    "openai",
+]
+
+[project.scripts]
+stigman = "stigman.main:cli"
