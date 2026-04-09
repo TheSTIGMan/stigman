@@ -6,7 +6,7 @@ def check_prerequisites():
     If missing, installs them with sudo apt install -y.
     Returns status of what was found/installed.
     """
-    packages = ["openscap-scanner", "ssg-ubuntu2404"]
+    packages = ["openscap-scanner", "scap-security-guide"]
     missing = []
     
     report = []

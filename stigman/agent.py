@@ -22,7 +22,7 @@ TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "check_prerequisites",
-            "description": "Checks if openscap-scanner and ssg-ubuntu2404 are installed, and installs them if missing.",
+            "description": "Checks if openscap-scanner and scap-security-guide are installed, and installs them if missing.",
             "parameters": {"type": "object", "properties": {}}
         }
     },
