@@ -21,9 +21,18 @@ def check_prerequisites():
     if missing:
         report.append(f"Missing packages detected: {', '.join(missing)}. Installing...")
         try:
+            import os
+            env = os.environ.copy()
+            env["DEBIAN_FRONTEND"] = "noninteractive"
+            
+            # Enable universe repo as SSG and OpenSCAP are traditionally stored there
+            subprocess.run(["add-apt-repository", "universe", "-y"], capture_output=True, env=env)
+            # Fetch latest package lists
+            subprocess.run(["apt", "update"], capture_output=True, env=env)
+            
             # Note: The tool assumes it is running as root (checked in main) so sudo is just defensive or redundant
             install_cmd = ["apt", "install", "-y"] + missing
-            install_res = subprocess.run(install_cmd, capture_output=True, text=True, check=True)
+            install_res = subprocess.run(install_cmd, capture_output=True, text=True, check=True, env=env)
             report.append(f"Successfully installed: {', '.join(missing)}.")
         except subprocess.CalledProcessError as e:
             return f"Error installing packages. STDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
