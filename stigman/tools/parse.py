@@ -35,12 +35,18 @@ def parse_results():
             if rule_id and title_elem is not None:
                 rule_titles[rule_id] = title_elem.text
                 
+        # Only keep actionable results — skip notselected/notapplicable/notchecked
+        # to avoid sending hundreds of irrelevant rules back to the LLM.
+        SKIP_STATUSES = {"notselected", "notapplicable", "notchecked", "informational"}
+
         for rule_result in test_result.findall('xccdf:rule-result', ns):
             rule_id_ref = rule_result.get('idref')
             result_elem = rule_result.find('xccdf:result', ns)
             
             if rule_id_ref and result_elem is not None:
                 status = result_elem.text
+                if status in SKIP_STATUSES:
+                    continue
                 title = rule_titles.get(rule_id_ref, "Unknown Title")
                 
                 output.append({
@@ -48,7 +54,18 @@ def parse_results():
                     "title": title,
                     "result": status
                 })
-                
-        return json.dumps(output)
+
+        # Prepend a brief stats header so the LLM has context without re-counting
+        total_evaluated = len(output)
+        pass_count = sum(1 for r in output if r["result"] == "pass")
+        fail_count = sum(1 for r in output if r["result"] == "fail")
+        summary = {
+            "_summary": {
+                "evaluated": total_evaluated,
+                "pass": pass_count,
+                "fail": fail_count,
+            }
+        }
+        return json.dumps([summary] + output)
     except Exception as e:
         return f"Error parsing results: {str(e)}"
