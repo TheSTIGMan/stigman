@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from .tools.detect import detect_os
 from .tools.prereqs import check_prerequisites
 from .tools.scan import run_scan
@@ -78,7 +79,23 @@ ANTHROPIC_TOOLS = [
     for t in TOOLS_SCHEMA
 ]
 
+
+# Fallback order for OpenRouter free-tier 429s (best reasoning → lightest)
+OPENROUTER_FALLBACK_MODELS = [
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "nousresearch/hermes-3-llama-3.1-405b:free",
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "google/gemma-3-27b-it:free",
+    "google/gemma-3-12b-it:free",
+    "google/gemma-3-4b-it:free",
+    "meta-llama/llama-3.2-3b-instruct:free",
+    "google/gemma-3n-e4b-it:free",
+    "google/gemma-3n-e2b-it:free",
+]
+
 def dispatch_tool(name, args):
+
     if name == "detect_os":
         return detect_os()
     elif name == "check_prerequisites":
@@ -169,27 +186,47 @@ class AgentSession:
         # ensure System Prompt is at the front
         if not self.messages or self.messages[0]["role"] != "system":
             self.messages.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
-            
+
         self.messages.append({"role": "user", "content": user_text})
-        
+
+        # Build fallback model queue for openrouter
+        if self.provider == "openrouter":
+            remaining = [self.model] + [
+                m for m in OPENROUTER_FALLBACK_MODELS if m != self.model
+            ]
+        else:
+            remaining = [self.model]
+
+        current_model = remaining[0]
+
         while True:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=self.messages,
-                tools=TOOLS_SCHEMA,
-                tool_choice="auto"
-            )
+            try:
+                response = self.client.chat.completions.create(
+                    model=current_model,
+                    messages=self.messages,
+                    tools=TOOLS_SCHEMA,
+                    tool_choice="auto"
+                )
+            except Exception as e:
+                err = str(e)
+                if "429" in err and self.provider == "openrouter" and len(remaining) > 1:
+                    remaining.pop(0)
+                    current_model = remaining[0]
+                    print(f"Rate limited — switching to fallback model: {current_model}")
+                    time.sleep(1)
+                    continue
+                raise
+
             message = response.choices[0].message
             self.messages.append(message)
-            
+
             if not message.tool_calls:
                 return message.content
-                
+
             for tc in message.tool_calls:
                 args = json.loads(tc.function.arguments)
                 print(f"Agent is running tool: {tc.function.name}...")
                 result_str = dispatch_tool(tc.function.name, args)
-                # print(f"Tool {tc.function.name} returned {len(result_str)} characters.")
                 self.messages.append({
                     "role": "tool",
                     "tool_call_id": tc.id,
