@@ -209,10 +209,11 @@ class AgentSession:
                 )
             except Exception as e:
                 err = str(e)
-                if "429" in err and self.provider == "openrouter" and len(remaining) > 1:
+                if ("429" in err or "404" in err) and self.provider == "openrouter" and len(remaining) > 1:
                     remaining.pop(0)
                     current_model = remaining[0]
-                    print(f"Rate limited — switching to fallback model: {current_model}")
+                    reason = "Rate limited" if "429" in err else "Tools not supported"
+                    print(f"{reason} — switching to fallback model: {current_model}")
                     time.sleep(1)
                     continue
                 raise
