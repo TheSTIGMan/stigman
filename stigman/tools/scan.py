@@ -7,7 +7,7 @@ import shutil
 def run_scan():
     """
     Runs oscap xccdf eval with the Ubuntu 22.04 STIG profile.
-    Saves results to /tmp/stigman-results.xml and /tmp/stigman-report.html.
+    Saves results to /tmp/stigman-results.xml.
     """
     content_file = "/usr/share/xml/scap/ssg/content/ssg-ubuntu2204-ds.xml"
     
@@ -34,7 +34,6 @@ def run_scan():
         "oscap", "xccdf", "eval",
         "--profile", "xccdf_org.ssgproject.content_profile_stig",
         "--results", "/tmp/stigman-results.xml",
-        "--report", "/tmp/stigman-report.html",
         content_file
     ]
     
@@ -44,7 +43,7 @@ def run_scan():
         if result.returncode not in [0, 2]:
             return f"Error running scan (Exit code {result.returncode}). STDERR:\n{result.stderr}"
             
-        return "Scan complete. Results saved to /tmp/stigman-results.xml and report to /tmp/stigman-report.html."
+        return "Scan complete. Results saved to /tmp/stigman-results.xml."
     except FileNotFoundError:
         return "Error: oscap command not found. Have prerequisites been checked?"
     except Exception as e:
