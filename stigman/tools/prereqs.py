@@ -6,7 +6,7 @@ def check_prerequisites():
     If missing, installs them with sudo apt install -y.
     Returns status of what was found/installed.
     """
-    packages = ["libopenscap8", "openscap-scanner"]
+    packages = ["libopenscap8"]
     missing = []
     
     report = []

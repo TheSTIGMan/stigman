@@ -22,7 +22,7 @@ TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "check_prerequisites",
-            "description": "Checks if libopenscap8 and openscap-scanner are installed, and installs them if missing.",
+            "description": "Checks if libopenscap8 is installed, and installs it if missing. This provides the oscap binary.",
             "parameters": {"type": "object", "properties": {}}
         }
     },
