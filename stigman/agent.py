@@ -8,38 +8,17 @@ from .tools.parse import parse_results
 from .tools.remediate import remediate
 from .tools.report import generate_report
 
-SYSTEM_PROMPT = """You are stigman, an AI assistant that runs DISA STIG compliance scans on Ubuntu systems using OpenSCAP. You help users scan their system, understand results, and remediate findings. You have access to tools for OS detection, prerequisite checking, scanning, parsing results, and remediation. Always detect the OS and check prerequisites before scanning. When presenting results, summarize pass/fail counts and highlight critical failures. When asked to remediate, confirm what will be changed before applying fixes. Be concise and terminal-friendly in your responses — no markdown headers or bullet points, use simple text formatting."""
+SYSTEM_PROMPT = """You are stigman, an AI assistant that runs DISA STIG compliance scans on Ubuntu systems using OpenSCAP. You help users scan their system, understand results, and remediate findings.
+When asked to run a scan, use the `execute_full_scan` tool. NEVER try to guess or hallucinate scan results. Always report the summary pass/fail counts and highlight critical failures.
+When asked to remediate, confirm what will be changed before applying fixes. IMPORTANT: Because remediation scripts can be large, you must only propose and apply fixes in chunks of MAXIMUM 5 rules at a time. After fixing 5 rules, ask the user if they'd like to continue.
+Be concise and terminal-friendly in your responses — no markdown headers or bullet points, use simple text formatting."""
 
 TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
-            "name": "detect_os",
-            "description": "Runs lsb_release -a to confirm Ubuntu 22.04.",
-            "parameters": {"type": "object", "properties": {}}
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "check_prerequisites",
-            "description": "Checks if libopenscap8 is installed, and installs it if missing. This provides the oscap binary.",
-            "parameters": {"type": "object", "properties": {}}
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "run_scan",
-            "description": "Runs DISA STIG scan via oscap xccdf eval.",
-            "parameters": {"type": "object", "properties": {}}
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "parse_results",
-            "description": "Parses XCCDF results XML and returns JSON array of rules and their pass/fail status.",
+            "name": "execute_full_scan",
+            "description": "Orchestrates the entire scan pipeline: detects OS, checks prerequisites, runs the DISA STIG scan via OpenSCAP, parses the results, generates the HTML report, and returns a JSON summary of passes and failures.",
             "parameters": {"type": "object", "properties": {}}
         }
     },
@@ -94,21 +73,32 @@ OPENROUTER_FALLBACK_MODELS = [
     "google/gemma-3n-e2b-it:free",
 ]
 
+def perform_full_scan():
+    print("Agent is orchestrating full scan pipeline...")
+    os_res = detect_os()
+    if "Error" in os_res:
+        return os_res
+        
+    pre_res = check_prerequisites()
+    if "Error" in pre_res:
+        return pre_res
+        
+    scan_res = run_scan()
+    if "Error" in scan_res:
+        return scan_res
+        
+    # Generate report in background too
+    generate_report()
+    
+    return parse_results()
+
 def dispatch_tool(name, args):
 
-    if name == "detect_os":
-        return detect_os()
-    elif name == "check_prerequisites":
-        return check_prerequisites()
-    elif name == "run_scan":
-        return run_scan()
-    elif name == "parse_results":
-        return parse_results()
+    if name == "execute_full_scan":
+        return perform_full_scan()
     elif name == "remediate":
         rule_ids = args.get("rule_ids", [])
         return remediate(rule_ids)
-    elif name == "generate_report":
-        return generate_report()
     else:
         return f"Tool {name} not found."
 
@@ -198,25 +188,51 @@ class AgentSession:
             remaining = [self.model]
 
         current_model = remaining[0]
+        max_retries = 3
 
         while True:
-            try:
-                response = self.client.chat.completions.create(
-                    model=current_model,
-                    messages=self.messages,
-                    tools=TOOLS_SCHEMA,
-                    tool_choice="auto"
-                )
-            except Exception as e:
-                err = str(e)
-                if ("429" in err or "404" in err) and self.provider == "openrouter" and len(remaining) > 1:
-                    remaining.pop(0)
-                    current_model = remaining[0]
-                    reason = "Rate limited" if "429" in err else "Tools not supported"
-                    print(f"{reason} — switching to fallback model: {current_model}")
-                    time.sleep(1)
-                    continue
-                raise
+            retries = 0
+            response = None
+            
+            while retries <= max_retries:
+                try:
+                    response = self.client.chat.completions.create(
+                        model=current_model,
+                        messages=self.messages,
+                        tools=TOOLS_SCHEMA,
+                        tool_choice="auto"
+                    )
+                    break # Success
+                except Exception as e:
+                    err = str(e)
+                    
+                    if "404" in err and self.provider == "openrouter" and len(remaining) > 1:
+                        # Tools not supported. Don't bother retrying, jump to fallback immediately
+                        break
+                        
+                    if "429" in err:
+                        if retries < max_retries:
+                            wait_time = 2 ** (retries + 1) # 2s, 4s, 8s
+                            print(f"Rate limited (429) on {current_model}. Retrying in {wait_time}s...")
+                            time.sleep(wait_time)
+                            retries += 1
+                            continue
+                        elif self.provider == "openrouter" and len(remaining) > 1:
+                            # Exhausted retries, fallback below
+                            break
+                            
+                    # Raise for any other unhandled errors or if we exhausted list
+                    raise e
+            
+            # If response is still None after the inner loop, it means we hit a break due to 404 or exhausted retries, 
+            # and we need to drop to a fallback model if we are openrouter
+            if response is None and self.provider == "openrouter" and len(remaining) > 1:
+                remaining.pop(0)
+                current_model = remaining[0]
+                print(f"Model capacity/features exhausted — switching to fallback model: {current_model}")
+                continue
+            elif response is None:
+                raise Exception(f"All models rate-limited or failed for {current_model}")
 
             message = response.choices[0].message
             self.messages.append(message)
