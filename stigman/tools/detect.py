@@ -9,16 +9,16 @@ def detect_os():
         result = subprocess.run(["lsb_release", "-a"], capture_output=True, text=True, check=True)
         out = result.stdout
         
-        # Check if it's Ubuntu 24.04
-        if "Ubuntu 24.04" not in out:
-            return f"Error: Supported OS is Ubuntu 24.04 LTS. Detected OS info:\n{out}"
+        # Check if it's Ubuntu 22.04
+        if "Ubuntu 22.04" not in out:
+            return f"Error: Supported OS is Ubuntu 22.04 LTS. Detected OS info:\n{out}"
         
         # parse out Description
         for line in out.splitlines():
             if line.startswith("Description:"):
                 return f"OS Confirmed: {line.split(':', 1)[1].strip()}"
                 
-        return "Ubuntu 24.04 detected, but couldn't parse Description line."
+        return "Ubuntu 22.04 detected, but couldn't parse Description line."
     except FileNotFoundError:
         return "Error: lsb_release command not found. Are you on Ubuntu?"
     except subprocess.CalledProcessError as e:

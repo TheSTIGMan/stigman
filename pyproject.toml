@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "stigman"
 version = "0.1.0"
-description = "AI-powered DISA STIG compliance scanner for Ubuntu"
+description = "AI-powered DISA STIG compliance scanner for Ubuntu 22.04"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

@@ -15,7 +15,7 @@ def check_root():
 @click.option("--setup", is_flag=True, help="Run first-time setup to configure an LLM provider.")
 @click.option("--api-key", help="Provide the API key directly (overrides env and config file).")
 def cli(setup, api_key):
-    """AI-powered DISA STIG compliance scanner for Ubuntu Server 24.04 LTS."""
+    """AI-powered DISA STIG compliance scanner for Ubuntu Server 22.04 LTS."""
     
     # Must be root
     check_root()

@@ -14,7 +14,7 @@ TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "detect_os",
-            "description": "Runs lsb_release -a to confirm Ubuntu 24.04.",
+            "description": "Runs lsb_release -a to confirm Ubuntu 22.04.",
             "parameters": {"type": "object", "properties": {}}
         }
     },
@@ -119,7 +119,7 @@ class AgentSession:
 
         while True:
             response = self.client.messages.create(
-                model="claude-sonnet-4-6",
+                model="claude-sonnet-4-20250514",
                 max_tokens=2048,
                 system=SYSTEM_PROMPT,
                 messages=self.messages,

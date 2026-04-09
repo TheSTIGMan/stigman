@@ -1,6 +1,6 @@
 # stigman
 
-AI-powered DISA STIG compliance scanner for Ubuntu Server 24.04 LTS. 
+AI-powered DISA STIG compliance scanner for Ubuntu Server 22.04 LTS. 
 The tool runs locally on the machine being scanned and uses natural language input to drive OpenSCAP scans, summarize findings, and optionally remediate issues.
 
 ## How It Works
@@ -25,8 +25,8 @@ You're all set! Type a command or ask a question.
 
 > scan this machine for STIG compliance
 
-Detecting OS... Ubuntu 24.04 LTS confirmed.
-Checking prerequisites... openscap-scanner and ssg-ubuntu2404 are installed.
+Detecting OS... Ubuntu 22.04 LTS confirmed.
+Checking prerequisites... openscap-scanner, ssg-base, and ssg-debderived are installed.
 Running DISA STIG scan... (this may take a few minutes)
 Scan complete.
 ...
@@ -34,7 +34,7 @@ Scan complete.
 
 ## Installation
 
-On Ubuntu 24.04 and later, Python environments are externally managed to protect the system. It is recommended to install `stigman` into a system-wide virtual environment so it can be run globally via `sudo`:
+On modern Ubuntu environments, Python environments can be externally managed to protect the system. It is recommended to install `stigman` into a system-wide virtual environment so it can be run globally via `sudo`:
 
 ```bash
 # 1. Install prerequisites
@@ -62,7 +62,7 @@ sudo stigman
 
 ## Features
 
-- Uses the official OpenSCAP scanner and ssg-ubuntu2404 STIG profiles.
+- Uses the official OpenSCAP scanner and ssg-ubuntu2204 STIG profiles.
 - Chat UI to initiate scans, inspect issues, and execute bash-based remediations.
 - Handles automated fallback for prerequisite checking and OS validation.
 - Allows exporting HTML reports locally for later auditing.

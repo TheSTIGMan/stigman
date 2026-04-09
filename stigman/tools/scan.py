@@ -2,7 +2,7 @@ import subprocess
 
 def run_scan():
     """
-    Runs oscap xccdf eval with the Ubuntu 24.04 STIG profile.
+    Runs oscap xccdf eval with the Ubuntu 22.04 STIG profile.
     Saves results to /tmp/stigman-results.xml and /tmp/stigman-report.html.
     """
     cmd = [
@@ -10,7 +10,7 @@ def run_scan():
         "--profile", "xccdf_org.ssgproject.content_profile_stig",
         "--results", "/tmp/stigman-results.xml",
         "--report", "/tmp/stigman-report.html",
-        "/usr/share/xml/scap/ssg/content/ssg-ubuntu2404-ds.xml"
+        "/usr/share/xml/scap/ssg/content/ssg-ubuntu2204-ds.xml"
     ]
     
     try:
