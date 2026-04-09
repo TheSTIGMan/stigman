@@ -37,10 +37,11 @@ def cli(setup, api_key):
         sys.exit(1)
         
     try:
-        agent = AgentSession(provider=provider, api_key=key)
+        agent = AgentSession(provider=provider, api_key=key, model=config.get("model"))
     except Exception as e:
         click.secho(f"Error initializing agent: {str(e)}", fg="red", err=True)
         click.secho("Ensure you have the required SDKs installed (anthropic or openai).", fg="yellow")
+        click.secho("For OpenRouter, the openai SDK is reused — ensure it is installed.", fg="yellow")
         sys.exit(1)
         
     click.echo("\nYou're all set! Type a command or ask a question.")

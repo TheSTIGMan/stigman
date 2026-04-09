@@ -96,7 +96,7 @@ def dispatch_tool(name, args):
         return f"Tool {name} not found."
 
 class AgentSession:
-    def __init__(self, provider, api_key):
+    def __init__(self, provider, api_key, model=None):
         self.provider = provider
         self.api_key = api_key
         self.messages = []
@@ -104,14 +104,27 @@ class AgentSession:
         if provider == "anthropic":
             from anthropic import Anthropic
             self.client = Anthropic(api_key=api_key)
+            self.model = "claude-sonnet-4-20250514"
         elif provider == "openai":
             from openai import OpenAI
             self.client = OpenAI(api_key=api_key)
+            self.model = "gpt-4o"
+        elif provider == "openrouter":
+            from openai import OpenAI
+            self.client = OpenAI(
+                api_key=api_key,
+                base_url="https://openrouter.ai/api/v1",
+                default_headers={
+                    "HTTP-Referer": "https://github.com/TheSTIGMan/stigman",
+                    "X-Title": "stigman",
+                }
+            )
+            self.model = model or "meta-llama/llama-3.3-70b-instruct:free"
 
     def run_conversation(self, user_text):
         if self.provider == "anthropic":
             return self._run_anthropic(user_text)
-        elif self.provider == "openai":
+        elif self.provider in ("openai", "openrouter"):
             return self._run_openai(user_text)
 
     def _run_anthropic(self, user_text):
@@ -161,7 +174,7 @@ class AgentSession:
         
         while True:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model=self.model,
                 messages=self.messages,
                 tools=TOOLS_SCHEMA,
                 tool_choice="auto"
