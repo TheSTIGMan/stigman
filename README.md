@@ -34,9 +34,25 @@ Scan complete.
 
 ## Installation
 
-Users install from GitHub:
+On Ubuntu 24.04 and later, Python environments are externally managed to protect the system. It is recommended to install `stigman` into a system-wide virtual environment so it can be run globally via `sudo`:
+
 ```bash
-pip install git+https://github.com/TheSTIGMan/stigman.git
+# 1. Install prerequisites
+sudo apt update && sudo apt install -y python3-venv git
+
+# 2. Create a dedicated virtual environment
+sudo python3 -m venv /opt/stigman-env
+
+# 3. Install stigman into the environment
+sudo /opt/stigman-env/bin/pip install git+https://github.com/TheSTIGMan/stigman.git
+
+# 4. Create a symlink in your global PATH
+sudo ln -sf /opt/stigman-env/bin/stigman /usr/local/bin/stigman
+```
+
+Alternatively, if you are in a dedicated single-purpose VM and prefer the quick route, you can override the restriction:
+```bash
+sudo pip3 install git+https://github.com/TheSTIGMan/stigman.git --break-system-packages
 ```
 
 Then run with:
