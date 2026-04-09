@@ -27,16 +27,12 @@ def parse_results():
         if test_result is None:
             return "Error: No TestResult found in the XML."
             
-        # Optional: build a mapping from Rule ID to Title if present in the document
-        rule_titles = {}
-        for rule in root.findall('.//xccdf:Rule', ns):
-            rule_id = rule.get('id')
-            title_elem = rule.find('xccdf:title', ns)
-            if rule_id and title_elem is not None:
-                rule_titles[rule_id] = title_elem.text
-                
-        # Only keep actionable results — skip notselected/notapplicable/notchecked
-        # to avoid sending hundreds of irrelevant rules back to the LLM.
+        pass_count = 0
+        fail_count = 0
+        total_evaluated = 0
+        failed_rules = []
+
+        # Only keep actionable results - skip notselected/notapplicable/notchecked
         SKIP_STATUSES = {"notselected", "notapplicable", "notchecked", "informational"}
 
         for rule_result in test_result.findall('xccdf:rule-result', ns):
@@ -47,25 +43,24 @@ def parse_results():
                 status = result_elem.text
                 if status in SKIP_STATUSES:
                     continue
-                title = rule_titles.get(rule_id_ref, "Unknown Title")
-                
-                output.append({
-                    "rule_id": rule_id_ref,
-                    "title": title,
-                    "result": status
-                })
+                    
+                total_evaluated += 1
+                if status == "pass":
+                    pass_count += 1
+                elif status == "fail":
+                    fail_count += 1
+                    # Text compression: return only the rule ID for failures
+                    failed_rules.append(rule_id_ref)
 
         # Prepend a brief stats header so the LLM has context without re-counting
-        total_evaluated = len(output)
-        pass_count = sum(1 for r in output if r["result"] == "pass")
-        fail_count = sum(1 for r in output if r["result"] == "fail")
         summary = {
             "_summary": {
                 "evaluated": total_evaluated,
                 "pass": pass_count,
                 "fail": fail_count,
-            }
+            },
+            "failed_rules": failed_rules
         }
-        return json.dumps([summary] + output)
+        return json.dumps(summary)
     except Exception as e:
         return f"Error parsing results: {str(e)}"
